@@ -4,6 +4,7 @@ use crate::{
         meta, player, vehicle,
     },
     helpers::{self, read_cpp_vector3, Hash, IntoHash, IntoString},
+    mvalue,
     resource::Resource,
     rgba::RGBA,
     sdk, structs,
@@ -20,6 +21,22 @@ impl player::Player {
 
     pub fn get_by_id(id: u32) -> SomeResult<player::PlayerContainer> {
         get_entity_by_id!(AnyEntity::Player, id).ok_or(anyhow::anyhow!("No player with id: {id}"))
+    }
+
+    pub fn emit(
+        &self,
+        event_name: &str,
+        args: impl IntoIterator<Item = mvalue::Serializable>,
+    ) -> VoidResult {
+        let raw_ptr = self.raw_ptr()?;
+        unsafe {
+            sdk::trigger_client_event(
+                raw_ptr,
+                event_name,
+                mvalue::convert_vec_to_mvalue_vec(args.into_iter().collect()),
+            );
+        }
+        Ok(())
     }
 
     pub fn name(&self) -> SomeResult<String> {
